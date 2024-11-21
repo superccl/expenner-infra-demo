@@ -1,0 +1,34 @@
+name: PR Title Check
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+
+jobs:
+  check-pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v2
+        with:
+          node-version: "20"
+
+      - name: Check PR title for Jira issue key
+        run: |
+          AUTHOR_LOGIN=$(jq -r .pull_request.user.login "$GITHUB_EVENT_PATH")
+          if [[ "$AUTHOR_LOGIN" == "dependabot[bot]" ]] || [[ "$AUTHOR_LOGIN" == "dependabot-preview[bot]" ]]; then
+            echo "PR is created by Dependabot. Skipping Jira issue key check."
+            exit 0
+          fi
+
+          TITLE=$(jq -r .pull_request.title "${GITHUB_EVENT_PATH}")
+          if ! [[ ${TITLE} =~ AE-[0-9]+ ]]; then
+            echo "PR title must contain a Jira issue key (e.g. AE-28)"
+            exit 1
+          fi

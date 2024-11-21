@@ -1,0 +1,30 @@
+name: Commit Message Check
+
+on:
+  push:
+    branches:
+      - "**"
+      - "!main"
+      - "!dev"
+
+jobs:
+  check-commit-message:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Check Commit Message
+        run: |
+          COMMIT_AUTHOR=$(git log -1 --pretty=format:'%an')
+          if [[ "$COMMIT_AUTHOR" == "dependabot[bot]" ]] || [[ "$COMMIT_AUTHOR" == "dependabot-preview[bot]" ]]; then
+            echo "Commit is made by Dependabot. Skipping commit message check."
+            exit 0
+          fi
+
+          COMMIT_MESSAGE=$(git log --format=%B -n 1 ${{ github.event.after }})
+          BRANCH_NAME=$(echo "${{ github.ref }}" | sed -e "s/refs\/heads\///g")
+          if ! [[ "$COMMIT_MESSAGE" =~ ^\[$BRANCH_NAME\] ]]; then
+            echo "Error: The commit message must start with the branch name in square brackets."
+            exit 1
+          fi
