@@ -1,0 +1,80 @@
+name: Deploy to Amazon S3 and CloudFront
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "The environment to deploy to (e.g., DEV, PROD)"
+        required: true
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.environment }}
+  cancel-in-progress: true
+
+env:
+  SOURCE_DIR: "./out/"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Set environment variables
+        run: |
+          echo "NEXT_PUBLIC_COGNITO_USER_POOL_ID=${{ secrets[format('{0}_NEXT_PUBLIC_COGNITO_USER_POOL_ID', inputs.environment)] }}" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID=${{ secrets[format('{0}_NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID', inputs.environment)] }}" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_COGNITO_DOMAIN=${{ secrets[format('{0}_NEXT_PUBLIC_COGNITO_DOMAIN', inputs.environment)] }}" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_FRONTEND_URL=${{ secrets[format('{0}_NEXT_PUBLIC_FRONTEND_URL', inputs.environment)] }}" >> $GITHUB_ENV
+
+      - name: Build
+        run: npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets[format('{0}_AWS_ACCESS_KEY_ID', inputs.environment)] }}
+          aws-secret-access-key: ${{ secrets[format('{0}_AWS_SECRET_ACCESS_KEY', inputs.environment)] }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Print Source Directory
+        run: |
+          echo ${{ env.SOURCE_DIR }}
+          echo $SOURCE_DIR
+          ls
+
+      - name: Sync files to Amazon S3
+        env:
+          S3_BUCKET: ${{ secrets[format('{0}_S3_BUCKET', inputs.environment)] }}
+        run: |
+          aws s3 sync $SOURCE_DIR s3://$S3_BUCKET/ --delete --exclude ".*git*"
+
+      - name: Retrieve CloudFront Distribution ID from Parameter Store
+        id: get-cloudfront-id
+        run: |
+          ENVIRONMENT=$(echo "${{ inputs.environment }}" | tr '[:upper:]' '[:lower:]')
+          CLOUDFRONT_DISTRIBUTION_ID=$(aws ssm get-parameter --name " /$ENVIRONMENT/cloudfront/distribution-id" --query "Parameter.Value" --output text || echo "")
+          echo "CLOUDFRONT_DISTRIBUTION_ID=$CLOUDFRONT_DISTRIBUTION_ID" >> $GITHUB_ENV
+
+      - name: Create CloudFront invalidation
+        run: |
+          if [ -z "$CLOUDFRONT_DISTRIBUTION_ID" ]; then
+            echo "CloudFront Distribution ID not found"
+            exit 1
+          fi
+          aws cloudfront create-invalidation \
+            --distribution-id $CLOUDFRONT_DISTRIBUTION_ID \
+            --paths "/*"

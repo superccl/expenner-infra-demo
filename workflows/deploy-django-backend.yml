@@ -1,0 +1,88 @@
+name: Deploy to Amazon ECS
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "The environment to deploy to (e.g., DEV, PROD)"
+        required: true
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.inputs.environment }}
+  cancel-in-progress: true
+
+jobs:
+  pr-test:
+    name: Test
+    uses: ./.github/workflows/pr-test.yml
+    secrets: inherit
+
+  deploy:
+    name: Deploy
+    needs: pr-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets[format('{0}_AWS_ACCESS_KEY_ID', inputs.environment)] }}
+          aws-secret-access-key: ${{ secrets[format('{0}_AWS_SECRET_ACCESS_KEY', inputs.environment)] }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Extract version number
+        id: extract_version
+        run: |
+          VERSION=$(python -c "from api import __version__; print(__version__)")
+          echo "::set-output name=VERSION::$VERSION"
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets[format('{0}_ECR_REPOSITORY', inputs.environment)] }}
+          IMAGE_TAG: ${{ steps.extract_version.outputs.VERSION }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Delete untagged images from Amazon ECR
+        env:
+          ECR_REGION: ${{ secrets.AWS_REGION }}
+          ECR_REPOSITORY: ${{ secrets[format('{0}_ECR_REPOSITORY', inputs.environment)] }}
+        run: |
+          IMAGES_TO_DELETE=$(aws ecr list-images --region $ECR_REGION --repository-name $ECR_REPOSITORY --filter "tagStatus=UNTAGGED" --query 'imageIds[*]' --output json)
+          if [ "$IMAGES_TO_DELETE" != "[]" ]; then
+            aws ecr batch-delete-image --region $ECR_REGION --repository-name $ECR_REPOSITORY --image-ids "$IMAGES_TO_DELETE" || true
+          else
+            echo "No untagged images to delete."
+          fi
+
+      # aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION }} > task-def.json
+      # - name: Fill in the new image ID in the Amazon ECS task definition
+      #   id: task-def
+      #   uses: aws-actions/amazon-ecs-render-task-definition@c804dfbdd57f713b6c079302a4c01db7017a36fc
+      #   with:
+      #     task-definition: ${{ secrets.ECS_TASK_DEFINITION }}
+      #     container-name: ${{ secrets.CONTAINER_NAME }}
+      #     image: ${{ steps.build-image.outputs.image }}
+
+      # - name: Deploy Amazon ECS task definition
+      #   uses: aws-actions/amazon-ecs-deploy-task-definition@df9643053eda01f169e64a0e60233aacca83799a
+      #   with:
+      #     task-definition: ${{ steps.task-def.outputs.task-definition }}
+      #     service: ${{ secrets.ECS_SERVICE }}
+      #     cluster: ${{ secrets.ECS_CLUSTER }}
+      #     wait-for-service-stability: true
+
+      # - name: Deploy to ECS
+      #   run: |
+      #     aws ecs update-service --cluster ${{ secrets.ECS_CLUSTER }} --service ${{ secrets.ECS_SERVICE }} --force-new-deployment
