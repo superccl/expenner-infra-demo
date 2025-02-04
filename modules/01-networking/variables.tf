@@ -10,7 +10,6 @@ variable "environment" {
 variable "num_azs" {
   description = "Number of availability zones to use"
   type        = number
-  default     = 0
 }
 variable "app_name" {
   description = "Name of the application"
@@ -25,20 +24,27 @@ variable "cidr_block" {
 variable "web_subnet_cidr" {
   description = "CIDR block for web subnet"
   type        = list(string)
-  default     = ["10.16.1.0/24", "10.16.2.0/24", "10.16.3.0/24"]
+  default     = ["10.16.1.0/24", "10.16.2.0/24"]
 }
 
 variable "application_subnet_cidr" {
   description = "CIDR block for application subnet"
   type        = list(string)
-  default     = ["10.16.4.0/24", "10.16.5.0/24", "10.16.6.0/24"]
+  default     = ["10.16.4.0/24", "10.16.5.0/24"]
 }
 
 variable "database_subnet_cidr" {
   description = "CIDR block for database subnet"
   type        = list(string)
-  default     = ["10.16.7.0/24", "10.16.8.0/24", "10.16.9.0/24"]
+  default     = ["10.16.7.0/24", "10.16.8.0/24"]
 }
+
+variable "redis_subnet_cidr" {
+  description = "CIDR block for Redis subnet"
+  type        = list(string)
+  default     = ["10.16.10.0/24", "10.16.11.0/24"]
+}
+
 variable "container_port" {
   description = "Port for the server to listen on"
   type        = number
@@ -48,6 +54,11 @@ variable "db_port" {
   description = "Port for the database"
   type        = number
   default     = 5432
+}
+variable "redis_port" {
+  description = "Port for the Redis server"
+  type        = number
+  default     = 6379
 }
 variable "my_ip_set" {
   description = "List of CIDR blocks to allow SSH access to the application"

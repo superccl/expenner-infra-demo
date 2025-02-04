@@ -1,5 +1,6 @@
 resource "aws_s3_bucket" "cloudfront_logs" {
-  bucket = "${local.name_prefix}-cf-logs"
+  bucket        = "${local.name_prefix}-cf-logs"
+  force_destroy = true
 
   tags = merge(local.tags, {
     Name = "${local.name_prefix}-cf-logs"

@@ -3,7 +3,6 @@ locals {
   tags = {
     Tier        = "02-storage"
     Environment = var.environment
-    Create_date = formatdate("YYYY-MM-DD", timestamp())
     Created_by  = "Terraform"
     Region      = var.region
   }

@@ -1,12 +1,5 @@
 terraform {
-  backend "s3" {
-    bucket         = "authful-dev-tf-state-1028"
-    key            = "02a-cognito/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "authful-terraform-state-lock"
-    encrypt        = true
-    profile        = "superccl-development"
-  }
+  backend "s3" {}
   required_providers {
     aws = {
       source  = "hashicorp/aws"

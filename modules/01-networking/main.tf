@@ -3,7 +3,6 @@ locals {
   tags = {
     Tier        = "01-networking"
     Environment = var.environment
-    Create_date = formatdate("YYYY-MM-DD", timestamp())
     Created_by  = "Terraform"
     Region      = var.region
   }
@@ -62,11 +61,32 @@ resource "aws_subnet" "database" {
   })
 }
 
+resource "aws_subnet" "redis" {
+  for_each                        = { for idx, subnet in var.redis_subnet_cidr : idx => subnet }
+  vpc_id                          = aws_vpc.main.id
+  cidr_block                      = each.value
+  ipv6_cidr_block                 = cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, each.key + 48)
+  availability_zone               = element(local.selected_azs, each.key)
+  assign_ipv6_address_on_creation = true
+
+  tags = merge(local.tags, {
+    Name = "${var.app_name}-redis-${each.key + 1}"
+  })
+}
+
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
   tags = merge(local.tags, {
     Name = "${var.app_name}-vpc-ig"
+  })
+}
+
+resource "aws_egress_only_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
+
+  tags = merge(local.tags, {
+    Name = "${var.app_name}-vpc-eigw"
   })
 }
 
@@ -93,6 +113,25 @@ resource "aws_route_table_association" "public" {
   subnet_id      = each.value.id
   route_table_id = aws_route_table.public.id
 
+}
+
+resource "aws_route_table" "app" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    ipv6_cidr_block = "::/0"
+    gateway_id      = aws_egress_only_internet_gateway.main.id
+  }
+
+  tags = merge(local.tags, {
+    Name = "${var.app_name}-app-rt"
+  })
+}
+
+resource "aws_route_table_association" "app" {
+  for_each       = aws_subnet.application
+  subnet_id      = each.value.id
+  route_table_id = aws_route_table.app.id
 }
 
 

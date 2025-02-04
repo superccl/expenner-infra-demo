@@ -1,12 +1,5 @@
 terraform {
-  backend "s3" {
-    bucket         = "authful-dev-tf-state-1028"
-    key            = "05-application/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "authful-terraform-state-lock"
-    encrypt        = true
-    profile        = "superccl-development"
-  }
+  backend "s3" {}
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -81,21 +74,25 @@ data "aws_ssm_parameter" "db_password" {
 locals {
   environment = "dev"
   ecs_task_environment = {
-    "SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI" : "https://${data.terraform_remote_state.cognito.outputs.cognito_user_pool_jwk}",
-    "SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI" : "https://${data.terraform_remote_state.cognito.outputs.cognito_user_pool_issuer_url}",
-    "SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_CLIENT_ID" : data.terraform_remote_state.cognito.outputs.cognito_user_pool_server_client_id,
-    "SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_CLIENT_SECRET" : data.terraform_remote_state.cognito.outputs.cognito_user_pool_server_client_secret,
+    "SECRET_KEY" : var.secret_key,
+    "COGNITO_USER_POOL" : data.terraform_remote_state.cognito.outputs.cognito_user_pool_id,
+    "COGNITO_AWS_REGION" : var.region,
+    "COGNITO_APP_CLIENT_ID" : data.terraform_remote_state.cognito.outputs.cognito_user_pool_server_client_id,
+    "POSTGRES_DB" : data.aws_db_instance.main.db_name,
     "POSTGRES_USER" : data.aws_db_instance.main.master_username,
     "POSTGRES_PASSWORD" : data.aws_ssm_parameter.db_password.value,
     "POSTGRES_HOST" : data.aws_db_instance.main.address,
     "POSTGRES_PORT" : data.aws_db_instance.main.port,
-    "POSTGRES_DB" : data.aws_db_instance.main.db_name,
-    "POSTGRES_HOST_AUTH_METHOD" : var.postgres_host_auth_method,
+    "REDIS_HOST" : data.terraform_remote_state.data.outputs.redis_endpoint,
+    "REDIS_PORT" : data.terraform_remote_state.networking.outputs.redis_port,
+    "REDIS_DB" : "0",
     "CORS_ALLOWED_ORIGINS" : "https://${var.domain_name}",
-    "CORS_ALLOWED_METHODS" : var.cors_allowed_methods,
-    "CORS_ALLOWED_HEADERS" : var.cors_allowed_headers,
+    "CORS_ALLOW_METHODS" : var.cors_allowed_methods,
+    "CORS_ALLOW_HEADERS" : var.cors_allowed_headers,
     "CORS_EXPOSED_HEADERS" : var.cors_exposed_headers,
-    "SERVER_SERVLET_CONTEXT_PATH" : var.server_servlet_context_path
+    "ALLOWED_HOSTS" : ".localhost,127.0.0.1,[::1],.${var.domain_name}",
+    # "ADMIN_EMAIL" : var.admin_email,
+    "DEBUG" : var.debug,
   }
 }
 
@@ -107,7 +104,7 @@ module "application" {
   app_name               = var.app_name
   domain_name            = data.terraform_remote_state.web.outputs.domain_name
   vpc_id                 = data.terraform_remote_state.networking.outputs.vpc_id
-  application_subnet_ids = data.terraform_remote_state.networking.outputs.web_subnet_ids
+  application_subnet_ids = data.terraform_remote_state.networking.outputs.application_subnet_ids
   container_port         = data.terraform_remote_state.web.outputs.container_port
   container_name         = var.container_name
   task_cpu               = var.task_cpu
@@ -117,9 +114,31 @@ module "application" {
   target_group_arn       = data.terraform_remote_state.web.outputs.target_group_arn
   ec2_instance_type      = var.ec2_instance_type
   ecs_service_sg_id      = data.terraform_remote_state.networking.outputs.ecs_service_sg_id
+  vpc_endpoints_sg_id    = data.terraform_remote_state.networking.outputs.vpc_endpoints_sg_id
   ecs_node_sg_id         = data.terraform_remote_state.networking.outputs.ecs_node_sg_id
   ecr_repository_url     = data.terraform_remote_state.storage.outputs.ecr_repository_url
   db_instance_identifier = data.terraform_remote_state.data.outputs.db_instance_identifier
   ecs_task_environment   = local.ecs_task_environment
   ecr_image_tag          = var.ecr_image_tag
+}
+
+data "aws_route_table" "app" {
+  subnet_id = data.terraform_remote_state.networking.outputs.application_subnet_ids[0]
+}
+module "nat" {
+  source                      = "int128/nat-instance/aws"
+  name                        = "nat-instance-main"
+  vpc_id                      = data.terraform_remote_state.networking.outputs.vpc_id
+  public_subnet               = data.terraform_remote_state.networking.outputs.web_subnet_ids[0]
+  private_subnets_cidr_blocks = data.terraform_remote_state.networking.outputs.application_subnet_cidr_blocks
+  private_route_table_ids     = [data.aws_route_table.app.id]
+  instance_types              = [var.nat_instance_type]
+  use_spot_instance           = true
+}
+
+resource "aws_eip" "nat" {
+  network_interface = module.nat.eni_id
+  tags = {
+    "Name" = "nat-instance-main"
+  }
 }

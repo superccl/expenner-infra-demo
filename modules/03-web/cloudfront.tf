@@ -106,4 +106,19 @@ resource "aws_cloudfront_function" "redirect_www" {
   runtime = "cloudfront-js-2.0"
   publish = true
   code    = file("${path.module}/redirect-www.js")
+
+  lifecycle {
+    ignore_changes = [code]
+  }
+}
+
+resource "aws_ssm_parameter" "distribution_id" {
+  name        = "/${var.environment}/cloudfront/distribution-id"
+  description = "ID of the CloudFront distribution"
+  type        = "String"
+  value       = aws_cloudfront_distribution.s3_distribution.id
+
+  tags = merge(local.tags, {
+    Name = "/${var.environment}/cloudfront/distribution-id"
+  })
 }

@@ -2,7 +2,6 @@ locals {
   tags = {
     Tier        = "02a-cognito"
     Environment = var.environment
-    Create_date = formatdate("YYYY-MM-DD", timestamp())
     Created_by  = "Terraform"
     Region      = var.region
   }
@@ -41,6 +40,18 @@ resource "aws_cognito_user_pool" "main" {
     require_numbers   = true
     require_symbols   = true
     require_uppercase = true
+  }
+
+  schema {
+    name                     = "email"
+    attribute_data_type      = "String"
+    mutable                  = true
+    required                 = true
+    developer_only_attribute = false
+    string_attribute_constraints {
+      min_length = 0
+      max_length = 2048
+    }
   }
 
 

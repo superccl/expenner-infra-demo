@@ -1,10 +1,5 @@
-locals {
-  # root_domain = replace(var.domain_name, "/^([^.]+\\.)*([^.]+\\.[^.]+)$/", "$2")
-  zone_id = var.hosted_zone_id != null ? var.hosted_zone_id : aws_route53_zone.primary[0].zone_id
-}
-
 resource "aws_route53_zone" "primary" {
-  count   = var.hosted_zone_id == null ? 1 : 0
+  count   = length(try(data.aws_route53_zone.selected, [])) == 0 ? 1 : 0
   name    = var.domain_name
   comment = "Managed by Terraform"
 
@@ -14,7 +9,7 @@ resource "aws_route53_zone" "primary" {
 }
 
 resource "aws_route53_record" "primary" {
-  zone_id = local.zone_id
+  zone_id = local.hosted_zone_id
   name    = var.domain_name
   type    = "A"
 
@@ -26,7 +21,7 @@ resource "aws_route53_record" "primary" {
 }
 
 resource "aws_route53_record" "www" {
-  zone_id = local.zone_id
+  zone_id = local.hosted_zone_id
   name    = "www.${var.domain_name}"
   type    = "A"
 
@@ -51,5 +46,5 @@ resource "aws_route53_record" "validation" {
   records         = [each.value.record]
   ttl             = 60
   type            = each.value.type
-  zone_id         = local.zone_id
+  zone_id         = local.hosted_zone_id
 }

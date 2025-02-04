@@ -8,3 +8,8 @@ output "ssm_db_password_name" {
   value       = aws_ssm_parameter.db_password.name
 }
 
+output "redis_endpoint" {
+  description = "The endpoint of the Redis cluster"
+  value       = aws_elasticache_replication_group.main.primary_endpoint_address
+}
+

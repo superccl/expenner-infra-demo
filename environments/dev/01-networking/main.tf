@@ -1,12 +1,5 @@
 terraform {
-  backend "s3" {
-    bucket         = "authful-dev-tf-state-1028"
-    key            = "01-networking/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "authful-terraform-state-lock"
-    encrypt        = true
-    profile        = "superccl-development"
-  }
+  backend "s3" {}
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -24,6 +17,10 @@ locals {
   environment = "dev"
 }
 
+data "http" "myip" {
+  url = "https://ipv4.icanhazip.com"
+}
+
 module "networking" {
   source                  = "../../../modules/01-networking"
   region                  = var.region
@@ -34,8 +31,10 @@ module "networking" {
   web_subnet_cidr         = var.web_subnet_cidr
   application_subnet_cidr = var.application_subnet_cidr
   database_subnet_cidr    = var.database_subnet_cidr
+  redis_subnet_cidr       = var.redis_subnet_cidr
   container_port          = var.container_port
   db_port                 = var.db_port
-  my_ip_set               = var.my_ip_set
+  redis_port              = var.redis_port
+  my_ip_set               = ["${chomp(data.http.myip.response_body)}/32"]
   lb_ingress_cidr_blocks  = var.lb_ingress_cidr_blocks
 }

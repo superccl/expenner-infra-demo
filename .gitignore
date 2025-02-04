@@ -38,3 +38,6 @@ terraform.rc
 
 # backend.tf file
 backend.tf
+
+# backend configuration file
+backend.conf

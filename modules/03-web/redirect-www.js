@@ -22,6 +22,12 @@ async function handler(event) {
   else if (!uri.includes(".")) {
     request.uri += "/index.html"
   }
+  // Regular expression to match UUIDs
+  const uuidRegex =
+    /\/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\//
+
+  // Replace UUIDs with [id]
+  request.uri = request.uri.replace(uuidRegex, "/[id]/")
 
   return request
 }

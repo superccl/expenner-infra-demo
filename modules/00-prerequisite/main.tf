@@ -2,7 +2,6 @@ locals {
   tags = {
     Tier        = "00-prerequisite"
     Environment = var.environment
-    Create_date = formatdate("YYYY-MM-DD", timestamp())
     Created_by  = "Terraform"
     Region      = var.region
   }

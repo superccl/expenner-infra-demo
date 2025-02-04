@@ -4,6 +4,7 @@ resource "aws_lb" "web" {
   load_balancer_type = "application"
   security_groups    = [var.web_lb_sg_id]
   subnets            = var.web_subnet_ids
+  ip_address_type    = "dualstack"
 
   tags = merge(local.tags, {
     Name = "${local.name_prefix}-lb"
@@ -21,7 +22,7 @@ resource "aws_lb_target_group" "web" {
   vpc_id      = var.vpc_id
 
   health_check {
-    path                = "/api/healthcheck"
+    path                = "/api/healthcheck/"
     protocol            = "HTTP"
     port                = var.container_port
     healthy_threshold   = 3

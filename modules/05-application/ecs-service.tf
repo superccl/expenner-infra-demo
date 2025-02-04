@@ -4,17 +4,13 @@ resource "aws_ecs_service" "app" {
   task_definition         = aws_ecs_task_definition.app.arn
   desired_count           = var.desired_count
   enable_ecs_managed_tags = true
+  enable_execute_command  = true
+  launch_type             = "FARGATE"
 
   network_configuration {
-    subnets         = var.application_subnet_ids
-    security_groups = [var.ecs_service_sg_id]
-    # assign_public_ip = true # for fargate only
-  }
-
-  capacity_provider_strategy {
-    capacity_provider = aws_ecs_capacity_provider.main.name
-    base              = 1
-    weight            = 100
+    subnets          = var.application_subnet_ids
+    security_groups  = [var.ecs_service_sg_id]
+    assign_public_ip = false
   }
 
   lifecycle {

@@ -1,12 +1,5 @@
 terraform {
-  backend "s3" {
-    bucket         = "authful-dev-tf-state-1028"
-    key            = "04-data/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "authful-terraform-state-lock"
-    encrypt        = true
-    profile        = "superccl-development"
-  }
+  backend "s3" {}
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -38,6 +31,7 @@ module "data" {
   source               = "../../../modules/04-data"
   environment          = local.environment
   region               = var.region
+  app_name             = var.app_name
   db_identifier        = var.db_identifier
   db_name              = var.db_name
   vpc_id               = data.terraform_remote_state.networking.outputs.vpc_id
@@ -50,4 +44,9 @@ module "data" {
   db_allocated_storage = var.db_allocated_storage
   ecs_service_sg_id    = data.terraform_remote_state.networking.outputs.ecs_service_sg_id
   db_sg_id             = data.terraform_remote_state.networking.outputs.db_sg_id
+  publicly_accessible  = var.publicly_accessible
+  redis_node_type      = var.redis_node_type
+  redis_port           = var.redis_port
+  redis_sg_id          = data.terraform_remote_state.networking.outputs.redis_sg_id
+  redis_subnet_ids     = data.terraform_remote_state.networking.outputs.redis_subnet_ids
 }

@@ -63,6 +63,12 @@ variable "ecs_service_sg_id" {
   description = "The ID of the security group for the ECS service"
   type        = string
 }
+
+variable "vpc_endpoints_sg_id" {
+  description = "The ID of the security group for the VPC endpoints"
+  type        = string
+
+}
 variable "ecs_node_sg_id" {
   description = "The ID of the security group for the ECS nodes"
   type        = string

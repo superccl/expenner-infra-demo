@@ -1,12 +1,5 @@
 terraform {
-  backend "s3" {
-    bucket         = "authful-dev-tf-state-1028"
-    key            = "03-web/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "authful-terraform-state-lock"
-    encrypt        = true
-    profile        = "superccl-development"
-  }
+  backend "s3" {}
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -49,6 +42,10 @@ data "aws_route53_zone" "selected" {
   private_zone = false
 }
 
+data "http" "myip" {
+  url = "http://ipv4.icanhazip.com"
+}
+
 module "web" {
   source                 = "../../../modules/03-web"
   region                 = var.region
@@ -58,12 +55,11 @@ module "web" {
   domain_name            = var.domain_name
   header_name            = var.header_name
   header_value           = var.header_value
-  allowed_ips            = var.allowed_ips
+  allowed_ips            = ["${chomp(data.http.myip.response_body)}/32"]
   is_ipv6_enabled        = var.is_ipv6_enabled
   container_port         = var.container_port
   vpc_id                 = data.terraform_remote_state.networking.outputs.vpc_id
   web_subnet_ids         = data.terraform_remote_state.networking.outputs.web_subnet_ids
-  hosted_zone_id         = try(data.aws_route53_zone.selected.zone_id, null)
   web_bucket_name        = data.terraform_remote_state.storage.outputs.web_bucket_name
   web_lb_sg_id           = data.terraform_remote_state.networking.outputs.web_lb_sg_id
 }
