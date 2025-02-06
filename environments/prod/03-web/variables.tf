@@ -27,6 +27,10 @@ variable "domain_name" {
     error_message = "Domain name must be lowercase alphanumeric characters and hyphens only"
   }
 }
+variable "root_domain" {
+  description = "Root domain for the Cloudflare DNS"
+  type        = string
+}
 variable "header_name" {
   description = "Custom header name in cloudfront to be passed to the application tier"
   type        = string
@@ -73,7 +77,16 @@ variable "s3_backend_storage_key" {
   description = "S3 key for the s3 web backend"
   type        = string
 }
+variable "s3_backend_acm_key" {
+  description = "S3 key for the acm backend"
+  type        = string
+}
 variable "s3_backend_region" {
   description = "S3 region for the backend"
   type        = string
+}
+variable "cloudflare_api_token" {
+  description = "Cloudflare API token"
+  type        = string
+
 }

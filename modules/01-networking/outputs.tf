@@ -2,11 +2,15 @@ output "vpc_id" {
   description = "The ID of the VPC"
   value       = aws_vpc.main.id
 }
+output "public_subnet_ids" {
+  description = "The IDs of the public subnets"
+  value       = [for subnet in aws_subnet.public : subnet.id]
+}
+
 output "web_subnet_ids" {
   description = "The IDs of the web subnets"
   value       = [for subnet in aws_subnet.web : subnet.id]
 }
-
 output "application_subnet_ids" {
   description = "The IDs of the application subnets"
   value       = [for subnet in aws_subnet.application : subnet.id]
@@ -21,6 +25,11 @@ output "redis_subnet_ids" {
   description = "The IDs of the Redis subnets"
   value       = [for subnet in aws_subnet.redis : subnet.id]
 }
+output "public_subnet_cidr_blocks" {
+  description = "The CIDR blocks of the public subnets"
+  value       = [for subnet in aws_subnet.public : subnet.cidr_block]
+}
+
 output "web_subnet_cidr_blocks" {
   description = "The CIDR blocks of the web subnets"
   value       = [for subnet in aws_subnet.web : subnet.cidr_block]
@@ -56,6 +65,10 @@ output "ecs_service_sg_id" {
   value       = aws_security_group.ecs_service.id
 }
 
+output "jumpbox_sg_id" {
+  description = "The ID of the security group for the jumpbox"
+  value       = aws_security_group.jumpbox.id
+}
 output "vpc_endpoints_sg_id" {
   description = "The ID of the security group for the VPC endpoints"
   value       = aws_security_group.vpc_endpoints.id

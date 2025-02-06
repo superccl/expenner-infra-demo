@@ -31,26 +31,32 @@ variable "cidr_block" {
   type        = string
   default     = "10.16.0.0/20"
 }
-variable "web_subnet_cidr" {
-  description = "CIDR block for web subnet"
+variable "public_subnet_cidr" {
+  description = "CIDR block for public subnets"
   type        = list(string)
   default     = ["10.16.1.0/24", "10.16.2.0/24"]
 }
 
+variable "web_subnet_cidr" {
+  description = "CIDR block for web subnets"
+  type        = list(string)
+  default     = ["10.16.13.0/24", "10.16.14.0/24"]
+}
+
 variable "application_subnet_cidr" {
-  description = "CIDR block for application subnet"
+  description = "CIDR block for application subnets"
   type        = list(string)
   default     = ["10.16.4.0/24", "10.16.5.0/24"]
 }
 
 variable "database_subnet_cidr" {
-  description = "CIDR block for database subnet"
+  description = "CIDR block for database subnets"
   type        = list(string)
   default     = ["10.16.7.0/24", "10.16.8.0/24"]
 }
 
 variable "redis_subnet_cidr" {
-  description = "CIDR block for Redis subnet"
+  description = "CIDR block for Redis subnets"
   type        = list(string)
   default     = ["10.16.10.0/24", "10.16.11.0/24"]
 }
@@ -77,5 +83,6 @@ variable "my_ip_set" {
 variable "lb_ingress_cidr_blocks" {
   description = "List of CIDR blocks to allow access to the load balancer"
   type        = list(string)
+  default     = ["0.0.0.0/0"]
 }
 

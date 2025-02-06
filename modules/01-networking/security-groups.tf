@@ -4,10 +4,11 @@ resource "aws_security_group" "web_lb" {
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    protocol    = "tcp"
-    from_port   = 443
-    to_port     = 443
-    cidr_blocks = var.lb_ingress_cidr_blocks
+    protocol         = "tcp"
+    from_port        = 443
+    to_port          = 443
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
 
   egress {
@@ -75,6 +76,20 @@ resource "aws_security_group" "vpc_endpoints" {
   })
 }
 
+resource "aws_security_group" "jumpbox" {
+  name        = "${local.name_prefix}-jumpbox-sg"
+  description = "Security Group for the jumpbox"
+  vpc_id      = aws_vpc.main.id
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+}
+
 resource "aws_security_group" "ecs_node" {
   name        = "${local.name_prefix}-ecs-node-sg"
   vpc_id      = aws_vpc.main.id
@@ -139,7 +154,7 @@ resource "aws_security_group" "db" {
     from_port       = var.db_port
     to_port         = var.db_port
     protocol        = "tcp"
-    security_groups = [aws_security_group.ecs_service.id, aws_security_group.ssh.id]
+    security_groups = [aws_security_group.ecs_service.id, aws_security_group.jumpbox.id]
   }
 
   egress {
@@ -164,7 +179,7 @@ resource "aws_security_group" "redis" {
     from_port       = var.redis_port
     to_port         = var.redis_port
     protocol        = "tcp"
-    security_groups = [aws_security_group.ecs_service.id, aws_security_group.ssh.id]
+    security_groups = [aws_security_group.ecs_service.id, aws_security_group.jumpbox.id]
   }
 
   egress {

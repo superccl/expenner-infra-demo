@@ -2,6 +2,10 @@ output "vpc_id" {
   description = "The ID of the VPC"
   value       = module.networking.vpc_id
 }
+output "public_subnet_ids" {
+  description = "The IDs of the public subnets"
+  value       = module.networking.public_subnet_ids
+}
 output "web_subnet_ids" {
   description = "The IDs of the web subnets"
   value       = module.networking.web_subnet_ids
@@ -20,6 +24,10 @@ output "database_subnet_ids" {
 output "redis_subnet_ids" {
   description = "The IDs of the Redis subnets"
   value       = module.networking.redis_subnet_ids
+}
+output "public_subnet_cidr_blocks" {
+  description = "The CIDR blocks of the public subnets"
+  value       = module.networking.public_subnet_cidr_blocks
 }
 
 output "web_subnet_cidr_blocks" {
@@ -55,6 +63,11 @@ output "web_lb_sg_id" {
 output "ecs_service_sg_id" {
   description = "The ID of the security group for the ECS service"
   value       = module.networking.ecs_service_sg_id
+}
+
+output "jumpbox_sg_id" {
+  description = "The ID of the security group for the jumpbox"
+  value       = module.networking.jumpbox_sg_id
 }
 
 output "vpc_endpoints_sg_id" {

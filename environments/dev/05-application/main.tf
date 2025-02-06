@@ -129,7 +129,7 @@ module "nat" {
   source                      = "int128/nat-instance/aws"
   name                        = "nat-instance-main"
   vpc_id                      = data.terraform_remote_state.networking.outputs.vpc_id
-  public_subnet               = data.terraform_remote_state.networking.outputs.web_subnet_ids[0]
+  public_subnet               = data.terraform_remote_state.networking.outputs.public_subnet_ids[0]
   private_subnets_cidr_blocks = data.terraform_remote_state.networking.outputs.application_subnet_cidr_blocks
   private_route_table_ids     = [data.aws_route_table.app.id]
   instance_types              = [var.nat_instance_type]

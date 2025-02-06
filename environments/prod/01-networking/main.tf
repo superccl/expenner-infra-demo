@@ -28,7 +28,7 @@ module "networking" {
   app_name                = var.app_name
   cidr_block              = var.cidr_block
   num_azs                 = var.num_azs
-  web_subnet_cidr         = var.web_subnet_cidr
+  public_subnet_cidr      = var.public_subnet_cidr
   application_subnet_cidr = var.application_subnet_cidr
   database_subnet_cidr    = var.database_subnet_cidr
   redis_subnet_cidr       = var.redis_subnet_cidr

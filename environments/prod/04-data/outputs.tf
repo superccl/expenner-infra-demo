@@ -3,6 +3,11 @@ output "db_instance_identifier" {
   value       = module.data.db_instance_identifier
 }
 
+output "db_instance_address" {
+  description = "The address of the RDS instance"
+  value       = module.data.db_instance_address
+}
+
 output "ssm_db_password_name" {
   description = "The name of the SSM parameter for the database password"
   value       = module.data.ssm_db_password_name

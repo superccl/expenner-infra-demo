@@ -1,8 +1,3 @@
-locals {
-  s3_origin_id  = "S3 Origin"
-  app_domain_id = "Custom Origin"
-}
-
 resource "aws_cloudfront_distribution" "s3_distribution" {
   origin {
     domain_name              = data.aws_s3_bucket.web.bucket_regional_domain_name
@@ -14,11 +9,8 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   origin {
     domain_name = aws_lb.web.dns_name
     origin_id   = local.app_domain_id
-    custom_origin_config {
-      http_port              = 80
-      https_port             = 443
-      origin_protocol_policy = "https-only"
-      origin_ssl_protocols   = ["TLSv1.2"]
+    vpc_origin_config {
+      vpc_origin_id = aws_cloudfront_vpc_origin.alb.id
     }
     custom_header {
       name  = var.header_name
@@ -33,11 +25,11 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   comment             = "Managed by Terraform"
   aliases             = [var.domain_name, "www.${var.domain_name}"]
   web_acl_id          = aws_wafv2_web_acl.cloudfront.arn
-  depends_on          = [aws_wafv2_web_acl.cloudfront, aws_acm_certificate_validation.cert]
+  depends_on          = [aws_wafv2_web_acl.cloudfront]
 
 
   viewer_certificate {
-    acm_certificate_arn      = aws_acm_certificate_validation.cert.certificate_arn
+    acm_certificate_arn      = var.acm_certificate_arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2018"
   }
@@ -120,5 +112,24 @@ resource "aws_ssm_parameter" "distribution_id" {
 
   tags = merge(local.tags, {
     Name = "/${var.environment}/cloudfront/distribution-id"
+  })
+}
+
+resource "aws_cloudfront_vpc_origin" "alb" {
+  vpc_origin_endpoint_config {
+    name                   = "${local.name_prefix}-vpc-origin"
+    arn                    = aws_lb.web.arn
+    http_port              = 80
+    https_port             = 443
+    origin_protocol_policy = "https-only"
+
+    origin_ssl_protocols {
+      items    = ["TLSv1.2"]
+      quantity = 1
+    }
+  }
+
+  tags = merge(local.tags, {
+    Name = "${local.name_prefix}-vpc-origin"
   })
 }

@@ -16,11 +16,6 @@ output "load_balancer_arn" {
 
 output "target_group_arn" {
   value = module.web.target_group_arn
-
-}
-
-output "acm_certificate_arn" {
-  value = module.web.acm_certificate_arn
 }
 
 output "domain_name" {
@@ -29,12 +24,4 @@ output "domain_name" {
 
 output "container_port" {
   value = module.web.container_port
-}
-
-output "hosted_zone_id" {
-  value = module.web.hosted_zone_id
-}
-
-output "name_servers" {
-  value = module.web.name_servers
 }

@@ -5,12 +5,20 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 4"
+    }
   }
 }
 
 provider "aws" {
   region  = var.region
   profile = var.profile
+}
+
+provider "cloudflare" {
+  api_token = var.cloudflare_api_token
 }
 
 locals {
@@ -36,6 +44,15 @@ data "terraform_remote_state" "storage" {
     profile = var.profile
   }
 }
+# data "terraform_remote_state" "acm" {
+#   backend = "s3"
+#   config = {
+#     bucket  = var.s3_backend_bucket
+#     key     = var.s3_backend_acm_key
+#     region  = var.s3_backend_region
+#     profile = var.profile
+#   }
+# }
 
 data "aws_route53_zone" "selected" {
   name         = var.domain_name
@@ -62,4 +79,5 @@ module "web" {
   web_subnet_ids         = data.terraform_remote_state.networking.outputs.web_subnet_ids
   web_bucket_name        = data.terraform_remote_state.storage.outputs.web_bucket_name
   web_lb_sg_id           = data.terraform_remote_state.networking.outputs.web_lb_sg_id
+  acm_certificate_arn    = data.terraform_remote_state.acm.outputs.acm_certificate_arn
 }
